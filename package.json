@@ -1,0 +1,31 @@
+{
+  "name": "elastic-beanstalk-cdk",
+  "version": "1.0.0",
+  "description": "AWS CDK infrastructure for Elastic Beanstalk Node.js application",
+  "bin": {
+    "elastic-beanstalk-cdk": "bin/app.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "cdk": "cdk",
+    "deploy:dev": "cdk deploy bhq-dev",
+    "deploy:staging": "cdk deploy bhq-staging",
+    "deploy:sandbox": "cdk deploy bhq-sandbox",
+    "deploy:prod:blue": "cdk deploy bhq-prod-blue",
+    "deploy:prod:green": "cdk deploy bhq-prod-green",
+    "deploy:all": "cdk deploy --all",
+    "diff": "cdk diff",
+    "synth": "cdk synth"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "aws-cdk": "^2.115.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.115.0",
+    "constructs": "^10.3.0"
+  }
+}
