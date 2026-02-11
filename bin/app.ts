@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
+import { devEnvConfig, alphaEnvConfig, betaEnvConfig, prodEnvConfig, AWS_REGION } from './env';
 import { ElasticBeanstalkStack, ElasticBeanstalkStackProps } from '../lib/elastic-beanstalk-stack';
 
 const NODE_VERSION = '24';
-const AWS_REGION = 'us-east-2';
 const APPLICATION_NAME = 'breederhq-api';
 const SMALL_INSTANCE_TYPE = 't4g.small';
 const MEDIUM_INSTANCE_TYPE = 't4g.medium';
 
 // AWS Account IDs - update these with your actual account IDs
 const ACCOUNTS = {
-  nonProd: '335274136775', // dev, staging, sandbox
+  nonProd: '335274136775', // dev, alpha, beta
   prod:    '427814061976', // production blue/green
 };
 
@@ -27,44 +27,35 @@ new ElasticBeanstalkStack(app, 'bhq-dev', {
   highAvailability: false,
   instanceType: SMALL_INSTANCE_TYPE,
   nodeVersion: NODE_VERSION,
-  environmentVariables: {
-    NODE_ENV: 'development',
-    LOG_LEVEL: 'debug',
-  },
+  environmentVariables: devEnvConfig,
 });
 
 // Staging environment - single instance
-new ElasticBeanstalkStack(app, 'bhq-staging', {
+new ElasticBeanstalkStack(app, 'bhq-alpha', {
   env: {
     account: ACCOUNTS.nonProd,
     region: AWS_REGION,
   },
-  environmentName: 'staging',
+  environmentName: 'alpha',
   applicationName: APPLICATION_NAME,
   highAvailability: false,
   instanceType: SMALL_INSTANCE_TYPE,
   nodeVersion: NODE_VERSION,
-  environmentVariables: {
-    NODE_ENV: 'staging',
-    LOG_LEVEL: 'info',
-  },
+  environmentVariables: alphaEnvConfig,
 });
 
 // Sandbox environment - single instance
-new ElasticBeanstalkStack(app, 'bhq-sandbox', {
+new ElasticBeanstalkStack(app, 'bhq-beta', {
   env: {
     account: ACCOUNTS.nonProd,
     region: AWS_REGION,
   },
-  environmentName: 'sandbox',
+  environmentName: 'beta',
   applicationName: APPLICATION_NAME,
   highAvailability: false,
   instanceType: SMALL_INSTANCE_TYPE,
   nodeVersion: NODE_VERSION,
-  environmentVariables: {
-    NODE_ENV: 'sandbox',
-    LOG_LEVEL: 'info',
-  },
+  environmentVariables: betaEnvConfig,
 });
 
 // Production environment - blue/green deployment with CNAME swap
@@ -75,10 +66,7 @@ const productionConfig: Omit<ElasticBeanstalkStackProps, 'env' | 'environmentNam
   minInstances: 1,
   maxInstances: 10,
   nodeVersion: NODE_VERSION,
-  environmentVariables: {
-    NODE_ENV: 'production',
-    LOG_LEVEL: 'warn',
-  },
+  environmentVariables: prodEnvConfig,
 };
 
 new ElasticBeanstalkStack(app, 'bhq-prod-blue', {
