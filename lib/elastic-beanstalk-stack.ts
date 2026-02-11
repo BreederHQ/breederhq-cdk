@@ -130,6 +130,23 @@ export class ElasticBeanstalkStack extends cdk.Stack {
         value: 'enhanced',
       },
 
+      // CloudWatch Logs
+      {
+        namespace: 'aws:elasticbeanstalk:cloudwatch:logs',
+        optionName: 'StreamLogs',
+        value: 'true',
+      },
+      {
+        namespace: 'aws:elasticbeanstalk:cloudwatch:logs',
+        optionName: 'RetentionInDays',
+        value: '30',
+      },
+      {
+        namespace: 'aws:elasticbeanstalk:cloudwatch:logs',
+        optionName: 'DeleteOnTerminate',
+        value: 'false',
+      },
+
       // Deployment policy
       {
         namespace: 'aws:elasticbeanstalk:command',
