@@ -64,6 +64,19 @@ export class ElasticBeanstalkStack extends cdk.Stack {
       resources: [`${appBucket.bucketArn}/*`],
     }));
 
+    // Assets bucket access
+    const assetsBucketArn = `arn:aws:s3:::breederhq-assets-${environmentName}`;
+    instanceRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['s3:GetObject', 's3:PutObject', 's3:DeleteObject', 's3:ListBucket'],
+      resources: [assetsBucketArn, `${assetsBucketArn}/*`],
+    }));
+
+    // Secrets Manager access
+    instanceRole.addToPolicy(new iam.PolicyStatement({
+      actions: ['secretsmanager:GetSecretValue'],
+      resources: [`arn:aws:secretsmanager:${this.region}:${this.account}:secret:${applicationName}/${environmentName}*`],
+    }));
+
     const instanceProfile = new iam.CfnInstanceProfile(this, 'InstanceProfile', {
       roles: [instanceRole.roleName],
       instanceProfileName: `${applicationName}-${environmentName}-instance-profile`,
