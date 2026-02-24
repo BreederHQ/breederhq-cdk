@@ -25,9 +25,10 @@ new ElasticBeanstalkStack(app, 'bhq-dev', {
   environmentName: 'dev',
   applicationName: APPLICATION_NAME,
   highAvailability: false,
-  instanceType: SMALL_INSTANCE_TYPE,
+  instanceType: MEDIUM_INSTANCE_TYPE,
   nodeVersion: NODE_VERSION,
   environmentVariables: devEnvConfig,
+  cloudFrontEnabled: true,
 });
 
 // Staging environment - single instance

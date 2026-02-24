@@ -1,4 +1,6 @@
 import * as cdk from 'aws-cdk-lib';
+import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
+import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as elasticbeanstalk from 'aws-cdk-lib/aws-elasticbeanstalk';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
@@ -16,6 +18,10 @@ export interface ElasticBeanstalkStackProps extends cdk.StackProps {
   environmentVariables?: { [key: string]: string };
   vpcId?: string;
   certificateArn?: string; // For HTTPS
+  cloudFrontEnabled?: boolean;
+  frontendBucketName?: string;
+  cloudFrontCertificateArn?: string; // ACM cert in us-east-1
+  cloudFrontAliases?: string[];
 }
 
 export class ElasticBeanstalkStack extends cdk.Stack {
@@ -32,6 +38,10 @@ export class ElasticBeanstalkStack extends cdk.Stack {
       maxInstances = 4,
       environmentVariables = {},
       certificateArn,
+      cloudFrontEnabled = false,
+      frontendBucketName = `breederhq-fe-${environmentName}`,
+      cloudFrontCertificateArn,
+      cloudFrontAliases,
     } = props;
 
     // Create S3 bucket for application versions
@@ -272,5 +282,73 @@ export class ElasticBeanstalkStack extends cdk.Stack {
       value: appBucket.bucketName,
       description: 'S3 Bucket for application versions',
     });
+
+    // CloudFront distribution for unified frontend + API origin
+    if (cloudFrontEnabled) {
+      const frontendBucket = s3.Bucket.fromBucketName(this, 'FrontendBucket', frontendBucketName);
+
+      const oac = new cloudfront.CfnOriginAccessControl(this, 'OAC', {
+        originAccessControlConfig: {
+          name: `${applicationName}-${environmentName}-oac`,
+          originAccessControlOriginType: 's3',
+          signingBehavior: 'always',
+          signingProtocol: 'sigv4',
+        },
+      });
+
+      const s3Origin = origins.S3BucketOrigin.withOriginAccessControl(frontendBucket);
+
+      const ebDomain = `${applicationName}-${environmentName}.${this.region}.elasticbeanstalk.com`;
+      const ebOrigin = new origins.HttpOrigin(ebDomain, {
+        protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
+      });
+
+      const distribution = new cloudfront.Distribution(this, 'Distribution', {
+        comment: `${applicationName} ${environmentName} frontend + API distribution`,
+        defaultBehavior: {
+          origin: s3Origin,
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        },
+        additionalBehaviors: {
+          '/api/*': {
+            origin: ebOrigin,
+            viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+            cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+            originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
+            allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+          },
+        },
+        defaultRootObject: 'index.html',
+        errorResponses: [
+          {
+            httpStatus: 403,
+            responseHttpStatus: 200,
+            responsePagePath: '/index.html',
+          },
+          {
+            httpStatus: 404,
+            responseHttpStatus: 200,
+            responsePagePath: '/index.html',
+          },
+        ],
+        ...(cloudFrontCertificateArn && cloudFrontAliases ? {
+          certificate: cdk.aws_certificatemanager.Certificate.fromCertificateArn(
+            this, 'CloudFrontCert', cloudFrontCertificateArn,
+          ),
+          domainNames: cloudFrontAliases,
+        } : {}),
+      });
+
+      new cdk.CfnOutput(this, 'CloudFrontDomainName', {
+        value: distribution.distributionDomainName,
+        description: 'CloudFront Distribution Domain Name',
+      });
+
+      new cdk.CfnOutput(this, 'CloudFrontDistributionId', {
+        value: distribution.distributionId,
+        description: 'CloudFront Distribution ID',
+      });
+    }
   }
 }

@@ -9,7 +9,7 @@
     "build": "tsc",
     "watch": "tsc -w",
     "cdk": "cdk",
-    "deploy:dev": "cdk deploy bhq-dev",
+    "deploy:dev": "cdk deploy bhq-dev --profile bhq-dev",
     "deploy:staging": "cdk deploy bhq-staging",
     "deploy:sandbox": "cdk deploy bhq-sandbox",
     "deploy:prod:blue": "cdk deploy bhq-prod-blue",

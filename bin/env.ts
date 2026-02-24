@@ -5,8 +5,13 @@ const getBucketName = (pEnv: string) => {
 }
 
 
+// AWS_SECRET_NAME is an OPTIONAL variable that specifies the name of the AWS Secrets Manager secret to use for storing 
+// sensitive environment variables. 
+// If not provided, the application will try to load secrets based on the environment name (e.g., breederhq/dev for the dev environment).
+
 export const devEnvConfig = {
 	NODE_ENV: 'dev',
+	AWS_SECRET_NAME: 'breederhq/dev-prototype',
 	LOG_LEVEL: 'debug',
 	AWS_REGION: AWS_REGION,
 	S3_BUCKET: getBucketName('dev'),
@@ -14,8 +19,10 @@ export const devEnvConfig = {
 	RESEND_FROM_NAME: 'BreederHQ (Dev)',
 	EMAIL_DEV_REDIRECT: 'dev@breederhq.com',
 	RESEND_INBOUND_DOMAIN: 'mail.breederhq.com',
-	APP_URL: 'https://dev.breederhq.com',
 	MARKETPLACE_PUBLIC_ENABLED: 'true',
+	USE_SECRETS_MANAGER: 'true',
+	APP_URL: 'https://dev.breederhq.com',
+	ALLOWED_ORIGINS: 'https://dev.breederhq.com',
 };
 
 export const alphaEnvConfig = {
