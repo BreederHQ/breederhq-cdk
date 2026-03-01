@@ -5,6 +5,7 @@ import { ElasticBeanstalkStack, ElasticBeanstalkStackProps } from '../lib/elasti
 
 const NODE_VERSION = '24';
 const APPLICATION_NAME = 'breederhq-api';
+const SECRETS_MANAGER_PREFIX = 'breederhq';
 const SMALL_INSTANCE_TYPE = 't4g.small';
 const MEDIUM_INSTANCE_TYPE = 't4g.medium';
 
@@ -24,11 +25,14 @@ new ElasticBeanstalkStack(app, 'bhq-dev', {
   },
   environmentName: 'dev',
   applicationName: APPLICATION_NAME,
+  secretsManagerPrefix: SECRETS_MANAGER_PREFIX,
   highAvailability: false,
   instanceType: MEDIUM_INSTANCE_TYPE,
   nodeVersion: NODE_VERSION,
   environmentVariables: devEnvConfig,
   cloudFrontEnabled: true,
+  cloudFrontCertificateArn: 'arn:aws:acm:us-east-1:335274136775:certificate/e74d5168-2c59-4a9c-8bec-1dc54b3cf035',
+  cloudFrontAliases: ['dev.breederhq.com'],
 });
 
 // Staging environment - single instance

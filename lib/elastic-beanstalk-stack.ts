@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as cr from 'aws-cdk-lib/custom-resources';
 import * as elasticbeanstalk from 'aws-cdk-lib/aws-elasticbeanstalk';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as s3 from 'aws-cdk-lib/aws-s3';
@@ -10,6 +11,7 @@ import { Construct } from 'constructs';
 export interface ElasticBeanstalkStackProps extends cdk.StackProps {
   environmentName: string;
   applicationName: string;
+  secretsManagerPrefix?: string;
   highAvailability: boolean;
   instanceType: string;
   nodeVersion: string;
@@ -31,6 +33,7 @@ export class ElasticBeanstalkStack extends cdk.Stack {
     const {
       environmentName,
       applicationName,
+      secretsManagerPrefix,
       highAvailability,
       instanceType,
       nodeVersion,
@@ -84,7 +87,7 @@ export class ElasticBeanstalkStack extends cdk.Stack {
     // Secrets Manager access
     instanceRole.addToPolicy(new iam.PolicyStatement({
       actions: ['secretsmanager:GetSecretValue'],
-      resources: [`arn:aws:secretsmanager:${this.region}:${this.account}:secret:${applicationName}/${environmentName}*`],
+      resources: [`arn:aws:secretsmanager:${this.region}:${this.account}:secret:${secretsManagerPrefix}/${environmentName}*`],
     }));
 
     const instanceProfile = new iam.CfnInstanceProfile(this, 'InstanceProfile', {
@@ -242,8 +245,17 @@ export class ElasticBeanstalkStack extends cdk.Stack {
       }
     }
 
+    // Derive APP_URL and ALLOWED_ORIGINS from CDN_DOMAIN if not explicitly provided
+    const resolvedEnvVars = { ...environmentVariables };
+    if (resolvedEnvVars.CDN_DOMAIN && !resolvedEnvVars.APP_URL) {
+      resolvedEnvVars.APP_URL = `https://${resolvedEnvVars.CDN_DOMAIN}`;
+    }
+    if (resolvedEnvVars.CDN_DOMAIN && !resolvedEnvVars.ALLOWED_ORIGINS) {
+      resolvedEnvVars.ALLOWED_ORIGINS = `https://${resolvedEnvVars.CDN_DOMAIN}`;
+    }
+
     // Add environment variables
-    Object.entries(environmentVariables).forEach(([key, value]) => {
+    Object.entries(resolvedEnvVars).forEach(([key, value]) => {
       optionSettings.push({
         namespace: 'aws:elasticbeanstalk:application:environment',
         optionName: key,
@@ -298,13 +310,35 @@ export class ElasticBeanstalkStack extends cdk.Stack {
 
       const s3Origin = origins.S3BucketOrigin.withOriginAccessControl(frontendBucket);
 
-      const ebDomain = `${applicationName}-${environmentName}.${this.region}.elasticbeanstalk.com`;
-      const ebOrigin = new origins.HttpOrigin(ebDomain, {
+      // Assets bucket — user-uploaded media (animal photos, documents, etc.)
+      // Storage keys are rooted under tenants/ or providers/, so those paths
+      // are handled here rather than a separate CloudFront distribution.
+      // This eliminates cross-origin issues when the image editor fetches
+      // existing images for canvas-based cropping. Set CDN_DOMAIN to this
+      // distribution's domain name in Secrets Manager.
+      const assetsBucketName = `breederhq-assets-${environmentName}`;
+      const assetsBucket = s3.Bucket.fromBucketName(this, 'AssetsBucket', assetsBucketName);
+      const assetsOrigin = origins.S3BucketOrigin.withOriginAccessControl(assetsBucket);
+
+      const ebCnameResource = new cr.AwsCustomResource(this, 'EBCname', {
+        onUpdate: {
+          service: 'ElasticBeanstalk',
+          action: 'describeEnvironments',
+          parameters: { EnvironmentNames: [environment.ref] },
+          physicalResourceId: cr.PhysicalResourceId.of(environment.ref),
+          outputPaths: ['Environments.0.CNAME'],
+        },
+        policy: cr.AwsCustomResourcePolicy.fromSdkCalls({
+          resources: cr.AwsCustomResourcePolicy.ANY_RESOURCE,
+        }),
+      });
+
+      const ebOrigin = new origins.HttpOrigin(ebCnameResource.getResponseField('Environments.0.CNAME'), {
         protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
       });
 
       const distribution = new cloudfront.Distribution(this, 'Distribution', {
-        comment: `${applicationName} ${environmentName} frontend + API distribution`,
+        comment: `${applicationName} ${environmentName} frontend + API + assets distribution`,
         defaultBehavior: {
           origin: s3Origin,
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -317,6 +351,17 @@ export class ElasticBeanstalkStack extends cdk.Stack {
             cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
             originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
             allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+          },
+          // Media assets — storage keys are rooted under tenants/ or providers/
+          '/tenants/*': {
+            origin: assetsOrigin,
+            viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+            cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+          },
+          '/providers/*': {
+            origin: assetsOrigin,
+            viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+            cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
           },
         },
         defaultRootObject: 'index.html',
@@ -340,9 +385,31 @@ export class ElasticBeanstalkStack extends cdk.Stack {
         } : {}),
       });
 
+      // Allow CloudFront (via OAC) to read from the assets bucket.
+      // fromBucketName() returns an imported bucket — CDK cannot auto-add
+      // resource policies to imported buckets, so we do it explicitly here.
+      new s3.CfnBucketPolicy(this, 'AssetsBucketPolicy', {
+        bucket: assetsBucketName,
+        policyDocument: {
+          Version: '2012-10-17',
+          Statement: [{
+            Sid: 'AllowCloudFrontOAC',
+            Effect: 'Allow',
+            Principal: { Service: 'cloudfront.amazonaws.com' },
+            Action: 's3:GetObject',
+            Resource: `arn:aws:s3:::${assetsBucketName}/*`,
+            Condition: {
+              StringEquals: {
+                'AWS:SourceArn': `arn:aws:cloudfront::${this.account}:distribution/${distribution.distributionId}`,
+              },
+            },
+          }],
+        },
+      });
+
       new cdk.CfnOutput(this, 'CloudFrontDomainName', {
         value: distribution.distributionDomainName,
-        description: 'CloudFront Distribution Domain Name',
+        description: 'CloudFront Distribution Domain Name — set as CDN_DOMAIN in Secrets Manager',
       });
 
       new cdk.CfnOutput(this, 'CloudFrontDistributionId', {
