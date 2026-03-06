@@ -24,6 +24,10 @@ export interface ElasticBeanstalkStackProps extends cdk.StackProps {
   frontendBucketName?: string;
   cloudFrontCertificateArn?: string; // ACM cert in us-east-1
   cloudFrontAliases?: string[];
+  // Additional frontend sites, e.g. ['portal', 'marketplace'].
+  // Each entry creates a CloudFront distribution using bucket breederhq-fe-{name}-{env}
+  // and alias {name}-{env}.breederhq.com (e.g. portal-dev.breederhq.com).
+  additionalFrontends?: string[];
 }
 
 export class ElasticBeanstalkStack extends cdk.Stack {
@@ -45,6 +49,7 @@ export class ElasticBeanstalkStack extends cdk.Stack {
       frontendBucketName = `breederhq-fe-${environmentName}`,
       cloudFrontCertificateArn,
       cloudFrontAliases,
+      additionalFrontends = [],
     } = props;
 
     // Create S3 bucket for application versions
@@ -295,18 +300,29 @@ export class ElasticBeanstalkStack extends cdk.Stack {
       description: 'S3 Bucket for application versions',
     });
 
+    // EB origin — shared by the main distribution and any additional frontend distributions
+    let ebOrigin: origins.HttpOrigin | undefined;
+    if (cloudFrontEnabled || additionalFrontends.length > 0) {
+      const ebCnameResource = new cr.AwsCustomResource(this, 'EBCname', {
+        onUpdate: {
+          service: 'ElasticBeanstalk',
+          action: 'describeEnvironments',
+          parameters: { EnvironmentNames: [environment.ref] },
+          physicalResourceId: cr.PhysicalResourceId.of(environment.ref),
+          outputPaths: ['Environments.0.CNAME'],
+        },
+        policy: cr.AwsCustomResourcePolicy.fromSdkCalls({
+          resources: cr.AwsCustomResourcePolicy.ANY_RESOURCE,
+        }),
+      });
+      ebOrigin = new origins.HttpOrigin(ebCnameResource.getResponseField('Environments.0.CNAME'), {
+        protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
+      });
+    }
+
     // CloudFront distribution for unified frontend + API origin
     if (cloudFrontEnabled) {
       const frontendBucket = s3.Bucket.fromBucketName(this, 'FrontendBucket', frontendBucketName);
-
-      const oac = new cloudfront.CfnOriginAccessControl(this, 'OAC', {
-        originAccessControlConfig: {
-          name: `${applicationName}-${environmentName}-oac`,
-          originAccessControlOriginType: 's3',
-          signingBehavior: 'always',
-          signingProtocol: 'sigv4',
-        },
-      });
 
       const s3Origin = origins.S3BucketOrigin.withOriginAccessControl(frontendBucket);
 
@@ -320,25 +336,8 @@ export class ElasticBeanstalkStack extends cdk.Stack {
       const assetsBucket = s3.Bucket.fromBucketName(this, 'AssetsBucket', assetsBucketName);
       const assetsOrigin = origins.S3BucketOrigin.withOriginAccessControl(assetsBucket);
 
-      const ebCnameResource = new cr.AwsCustomResource(this, 'EBCname', {
-        onUpdate: {
-          service: 'ElasticBeanstalk',
-          action: 'describeEnvironments',
-          parameters: { EnvironmentNames: [environment.ref] },
-          physicalResourceId: cr.PhysicalResourceId.of(environment.ref),
-          outputPaths: ['Environments.0.CNAME'],
-        },
-        policy: cr.AwsCustomResourcePolicy.fromSdkCalls({
-          resources: cr.AwsCustomResourcePolicy.ANY_RESOURCE,
-        }),
-      });
-
-      const ebOrigin = new origins.HttpOrigin(ebCnameResource.getResponseField('Environments.0.CNAME'), {
-        protocolPolicy: cloudfront.OriginProtocolPolicy.HTTP_ONLY,
-      });
-
       const distribution = new cloudfront.Distribution(this, 'Distribution', {
-        comment: `${applicationName} ${environmentName} frontend + API + assets distribution`,
+        comment: `BreederHQ App [${environmentName}] — frontend + API + assets`,
         defaultBehavior: {
           origin: s3Origin,
           viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -346,7 +345,7 @@ export class ElasticBeanstalkStack extends cdk.Stack {
         },
         additionalBehaviors: {
           '/api/*': {
-            origin: ebOrigin,
+            origin: ebOrigin!,
             viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
             cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
             originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
@@ -415,6 +414,74 @@ export class ElasticBeanstalkStack extends cdk.Stack {
       new cdk.CfnOutput(this, 'CloudFrontDistributionId', {
         value: distribution.distributionId,
         description: 'CloudFront Distribution ID',
+      });
+    }
+
+    // Additional frontend distributions (e.g. portal, marketplace)
+    for (const frontendName of additionalFrontends) {
+      const bucketName = `breederhq-fe-${frontendName}-${environmentName}`;
+      const alias = `${frontendName}-${environmentName}.breederhq.com`;
+
+      const bucket = s3.Bucket.fromBucketName(this, `${frontendName}Bucket`, bucketName);
+      const origin = origins.S3BucketOrigin.withOriginAccessControl(bucket);
+
+      const label = frontendName.charAt(0).toUpperCase() + frontendName.slice(1);
+      const dist = new cloudfront.Distribution(this, `${frontendName}Distribution`, {
+        comment: `BreederHQ ${label} [${environmentName}] — frontend + API`,
+        defaultBehavior: {
+          origin,
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        },
+        additionalBehaviors: {
+          '/api/*': {
+            origin: ebOrigin!,
+            viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+            cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+            originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
+            allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+          },
+        },
+        defaultRootObject: 'index.html',
+        errorResponses: [
+          { httpStatus: 403, responseHttpStatus: 200, responsePagePath: '/index.html' },
+          { httpStatus: 404, responseHttpStatus: 200, responsePagePath: '/index.html' },
+        ],
+        ...(cloudFrontCertificateArn ? {
+          certificate: cdk.aws_certificatemanager.Certificate.fromCertificateArn(
+            this, `${frontendName}Cert`, cloudFrontCertificateArn,
+          ),
+          domainNames: [alias],
+        } : {}),
+      });
+
+      new s3.CfnBucketPolicy(this, `${frontendName}BucketPolicy`, {
+        bucket: bucketName,
+        policyDocument: {
+          Version: '2012-10-17',
+          Statement: [{
+            Sid: 'AllowCloudFrontOAC',
+            Effect: 'Allow',
+            Principal: { Service: 'cloudfront.amazonaws.com' },
+            Action: 's3:GetObject',
+            Resource: `arn:aws:s3:::${bucketName}/*`,
+            Condition: {
+              StringEquals: {
+                'AWS:SourceArn': `arn:aws:cloudfront::${this.account}:distribution/${dist.distributionId}`,
+              },
+            },
+          }],
+        },
+      });
+
+      new cdk.CfnOutput(this, `${frontendName}DistributionDomain`, {
+        value: dist.distributionDomainName,
+        description: `CloudFront domain for ${frontendName} — point ${alias} CNAME here`,
+      });
+
+      new cdk.CfnOutput(this, `${frontendName}DistributionId`, {
+        value: dist.distributionId,
+        description: `CloudFront Distribution ID for ${frontendName}`,
       });
     }
   }

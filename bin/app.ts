@@ -33,6 +33,7 @@ new ElasticBeanstalkStack(app, 'bhq-dev', {
   cloudFrontEnabled: true,
   cloudFrontCertificateArn: 'arn:aws:acm:us-east-1:335274136775:certificate/e74d5168-2c59-4a9c-8bec-1dc54b3cf035',
   cloudFrontAliases: ['dev.breederhq.com'],
+  additionalFrontends: ['portal', 'marketplace'],
 });
 
 // Staging environment - single instance
