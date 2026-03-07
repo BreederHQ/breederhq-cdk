@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
-import { devEnvConfig, alphaEnvConfig, betaEnvConfig, prodEnvConfig, AWS_REGION } from './env';
+import { devEnvConfig, alphaEnvConfig, bravoEnvConfig, prodEnvConfig, AWS_REGION } from './env';
 import { ElasticBeanstalkStack, ElasticBeanstalkStackProps } from '../lib/elastic-beanstalk-stack';
 
 const NODE_VERSION = '24';
@@ -11,7 +11,7 @@ const MEDIUM_INSTANCE_TYPE = 't4g.medium';
 
 // AWS Account IDs - update these with your actual account IDs
 const ACCOUNTS = {
-  nonProd: '335274136775', // dev, alpha, beta
+  nonProd: '335274136775', // dev, alpha, bravo
   prod:    '427814061976', // production blue/green
 };
 
@@ -44,24 +44,34 @@ new ElasticBeanstalkStack(app, 'bhq-alpha', {
   },
   environmentName: 'alpha',
   applicationName: APPLICATION_NAME,
+  secretsManagerPrefix: SECRETS_MANAGER_PREFIX,
   highAvailability: false,
-  instanceType: SMALL_INSTANCE_TYPE,
+  instanceType: MEDIUM_INSTANCE_TYPE,
   nodeVersion: NODE_VERSION,
   environmentVariables: alphaEnvConfig,
+  cloudFrontEnabled: true,
+  cloudFrontCertificateArn: 'arn:aws:acm:us-east-1:335274136775:certificate/e74d5168-2c59-4a9c-8bec-1dc54b3cf035',
+  cloudFrontAliases: ['alpha.breederhq.com'],
+  additionalFrontends: ['portal', 'marketplace'],
 });
 
 // Sandbox environment - single instance
-new ElasticBeanstalkStack(app, 'bhq-beta', {
+new ElasticBeanstalkStack(app, 'bhq-bravo', {
   env: {
     account: ACCOUNTS.nonProd,
     region: AWS_REGION,
   },
-  environmentName: 'beta',
+  environmentName: 'bravo',
   applicationName: APPLICATION_NAME,
+  secretsManagerPrefix: SECRETS_MANAGER_PREFIX,
   highAvailability: false,
-  instanceType: SMALL_INSTANCE_TYPE,
+  instanceType: MEDIUM_INSTANCE_TYPE,
   nodeVersion: NODE_VERSION,
-  environmentVariables: betaEnvConfig,
+  environmentVariables: bravoEnvConfig,
+  cloudFrontEnabled: true,
+  cloudFrontCertificateArn: 'arn:aws:acm:us-east-1:335274136775:certificate/e74d5168-2c59-4a9c-8bec-1dc54b3cf035',
+  cloudFrontAliases: ['bravo.breederhq.com'],
+  additionalFrontends: ['portal', 'marketplace'],
 });
 
 // Production environment - blue/green deployment with CNAME swap

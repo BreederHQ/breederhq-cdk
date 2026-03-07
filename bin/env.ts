@@ -26,21 +26,33 @@ export const devEnvConfig = {
 };
 
 export const alphaEnvConfig = {
+	PORT: '8080',
 	NODE_ENV: 'alpha',
+	AWS_SECRET_NAME: 'breederhq/alpha',
 	LOG_LEVEL: 'info',
 	AWS_REGION: AWS_REGION,
 	RESEND_FROM_EMAIL: 'noreply@mail.breederhq.com',
 	RESEND_FROM_NAME: 'BreederHQ (Alpha)',
 	EMAIL_DEV_REDIRECT: 'alpha@breederhq.com',
 	RESEND_INBOUND_DOMAIN: 'mail.breederhq.com',
-	APP_URL: 'https://alpha.breederhq.com',
 	MARKETPLACE_PUBLIC_ENABLED: 'true',
+	USE_SECRETS_MANAGER: 'true',
+	CDN_DOMAIN: 'alpha.breederhq.com',
 };
 
-export const betaEnvConfig = {
-	NODE_ENV: 'beta',
+export const bravoEnvConfig = {
+	PORT: '8080',
+	NODE_ENV: 'bravo',
+	AWS_SECRET_NAME: 'breederhq/bravo',
 	LOG_LEVEL: 'info',
 	AWS_REGION: AWS_REGION,
+	RESEND_FROM_EMAIL: 'noreply@mail.breederhq.com',
+	RESEND_FROM_NAME: 'BreederHQ (Bravo)',
+	EMAIL_DEV_REDIRECT: 'bravo@breederhq.com',
+	RESEND_INBOUND_DOMAIN: 'mail.breederhq.com',
+	MARKETPLACE_PUBLIC_ENABLED: 'true',
+	USE_SECRETS_MANAGER: 'true',
+	CDN_DOMAIN: 'bravo.breederhq.com',
 };
 
 export const prodEnvConfig = {
