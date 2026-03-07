@@ -47,6 +47,8 @@ Create a secret named `breederhq/{env}` (or as configured in `AWS_SECRET_NAME` i
 
 A wildcard certificate for `*.breederhq.com` must exist in **us-east-1** (required by CloudFront). The current certificate ARN is configured in `bin/app.ts`.
 
+This SHOULD be covered by the single certificate that already exists as of 7-Mar-2026.
+
 ### 4. DNS (after CDK deploy)
 
 After deploying, the CDK outputs will show the CloudFront domain names. Create CNAME records pointing:
