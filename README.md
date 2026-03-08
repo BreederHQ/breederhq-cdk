@@ -84,6 +84,7 @@ npm install
 
 # Deploy a specific environment
 npm run deploy:dev
+npm run deploy:bravo
 
 # Preview changes
 cdk diff bhq-dev
