@@ -97,6 +97,9 @@ cdk diff bhq-dev
 cdk deploy --all
 ```
 
+### Deploying application front-end code to S3
+You need to update the variables in breederhq/deploy-1.yml with the appropriate AWS Account ID, and the various CloudFront Distribution IDs after deploying the CDK. 
+
 ### Deploying application code to EB
 
 Application code is deployed separately via the EB CLI or GitHub Actions:
