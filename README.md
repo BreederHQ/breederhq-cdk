@@ -76,12 +76,15 @@ The `additionalFrontends` prop accepts an array of names (e.g. `['portal', 'mark
 - A bucket policy allowing CloudFront OAC read access
 - `/api/*` path routed to the EB environment
 
+<<<<<<< Updated upstream
 ## Deployment
 This step is to deploy the CloudFormation stack, and to build the infrastructure for a given environment (with the exception of the manually built items listed above). It builds:
 
 * Elastic Beanstalk
 * Cloud Front distributions connected to the appropriate domain name
 
+=======
+>>>>>>> Stashed changes
 ## Deploying a new environment
 
 Follow these steps in order (using `bravo` as an example):
@@ -139,6 +142,7 @@ cdk diff bhq-dev
 cdk deploy --all
 ```
 
+<<<<<<< Updated upstream
 ### Deploying application front-end code to S3
 You need to update the variables in breederhq/deploy-1.yml with the appropriate AWS Account ID, and the various CloudFront Distribution IDs after deploying the CDK. 
 
@@ -153,6 +157,8 @@ npm run deploy:dev
 
 This builds the TypeScript project locally and deploys the pre-built package to EB. The `.ebignore` file controls what gets included in the deployment package.
 
+=======
+>>>>>>> Stashed changes
 ## Accounts
 
 | Environment | AWS Account | Region |
