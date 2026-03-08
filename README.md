@@ -77,6 +77,10 @@ The `additionalFrontends` prop accepts an array of names (e.g. `['portal', 'mark
 - `/api/*` path routed to the EB environment
 
 ## Deployment
+This step is to deploy the CloudFormation stack, and to build the infrastructure for a given environment (with the exception of the manually built items listed above). It builds:
+
+* Elastic Beanstalk
+* Cloud Front distributions connected to the appropriate domain name
 
 ```bash
 # Install dependencies
