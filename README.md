@@ -82,6 +82,48 @@ This step is to deploy the CloudFormation stack, and to build the infrastructure
 * Elastic Beanstalk
 * Cloud Front distributions connected to the appropriate domain name
 
+## Deploying a new environment
+
+Follow these steps in order (using `bravo` as an example):
+
+### 1. Create prerequisite resources manually
+
+- S3 buckets: `breederhq-fe-bravo`, `breederhq-fe-portal-bravo`, `breederhq-fe-marketplace-bravo`, `breederhq-assets-bravo`
+- Secrets Manager secret: `breederhq/bravo` (see step 2 in Prerequisites above)
+- ACM certificate (if not already created — the existing `*.breederhq.com` cert covers all environments)
+
+### 2. Deploy infrastructure with CDK
+
+```bash
+npm run deploy:bravo
+```
+
+This creates the EB application/environment, CloudFront distributions, IAM roles, and bucket policies.
+
+### 3. Deploy API code to Elastic Beanstalk
+
+From the `breederhq-api` directory:
+
+```bash
+eb deploy breederhq-api-bravo
+```
+
+Or via GitHub Actions on the `bravo` branch.
+
+### 4. Deploy frontend code to S3
+
+Push to the `bravo` branch to trigger the GitHub Actions workflows, which build and upload to the S3 buckets.
+
+### 5. Set up DNS
+
+Using the CloudFront domain names from the CDK outputs, create CNAME records:
+
+- `bravo.breederhq.com` -> main distribution domain
+- `portal-bravo.breederhq.com` -> portal distribution domain
+- `marketplace-bravo.breederhq.com` -> marketplace distribution domain
+
+## CDK commands
+
 ```bash
 # Install dependencies
 npm install
