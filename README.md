@@ -118,7 +118,7 @@ This builds the TypeScript project locally and deploys the pre-built package to 
 | dev, alpha, bravo | 335274136775 | us-east-2 |
 | production | 427814061976 | us-east-2 |
 
-##IAM
+## IAM
 
 Note that you may need to adjust the "Trust Relationships" on the "BreederHQ-GitHub-Actions" role in IAM. This is referenced in the "Configure AWS credentials" in the deploy scripts in GitHub Actions.
 
