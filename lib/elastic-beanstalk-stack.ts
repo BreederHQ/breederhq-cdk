@@ -368,11 +368,11 @@ export class ElasticBeanstalkStack extends cdk.Stack {
             responsePagePath: '/index.html',
           },
         ],
-        ...(cloudFrontCertificateArn && cloudFrontAliases ? {
+        ...(cloudFrontCertificateArn ? {
           certificate: cdk.aws_certificatemanager.Certificate.fromCertificateArn(
             this, 'CloudFrontCert', cloudFrontCertificateArn,
           ),
-          domainNames: cloudFrontAliases,
+          domainNames: cloudFrontAliases ?? [`app-${environmentName}.breederhq.com`],
         } : {}),
       });
 

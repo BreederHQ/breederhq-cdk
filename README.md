@@ -65,7 +65,7 @@ A wildcard certificate for `*.breederhq.com` must exist in **us-east-1** (requir
 
 After deploying, the CDK outputs will show the CloudFront domain names. Create CNAME records pointing:
 
-- `{env}.breederhq.com` -> main distribution domain
+- `app-{env}.breederhq.com` -> main distribution domain
 - `portal-{env}.breederhq.com` -> portal distribution domain
 - `marketplace-{env}.breederhq.com` -> marketplace distribution domain
 
@@ -140,7 +140,7 @@ Push to the `bravo` branch to trigger the GitHub Actions workflows, which build 
 
 Using the CloudFront domain names from the CDK outputs, create CNAME records:
 
-- `bravo.breederhq.com` -> main distribution domain
+- `app-bravo.breederhq.com` -> main distribution domain
 - `portal-bravo.breederhq.com` -> portal distribution domain
 - `marketplace-bravo.breederhq.com` -> marketplace distribution domain
 

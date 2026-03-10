@@ -22,7 +22,7 @@ export const devEnvConfig = {
 	RESEND_INBOUND_DOMAIN: 'mail.breederhq.com',
 	MARKETPLACE_PUBLIC_ENABLED: 'true',
 	USE_SECRETS_MANAGER: 'true',
-	CDN_DOMAIN: 'dev.breederhq.com',
+	CDN_DOMAIN: 'app-dev.breederhq.com',
 };
 
 export const alphaEnvConfig = {
@@ -37,7 +37,7 @@ export const alphaEnvConfig = {
 	RESEND_INBOUND_DOMAIN: 'mail.breederhq.com',
 	MARKETPLACE_PUBLIC_ENABLED: 'true',
 	USE_SECRETS_MANAGER: 'true',
-	CDN_DOMAIN: 'alpha.breederhq.com',
+	CDN_DOMAIN: 'app-alpha.breederhq.com',
 };
 
 export const bravoEnvConfig = {
@@ -52,7 +52,7 @@ export const bravoEnvConfig = {
 	RESEND_INBOUND_DOMAIN: 'mail.breederhq.com',
 	MARKETPLACE_PUBLIC_ENABLED: 'true',
 	USE_SECRETS_MANAGER: 'true',
-	CDN_DOMAIN: 'bravo.breederhq.com',
+	CDN_DOMAIN: 'app-bravo.breederhq.com',
 };
 
 export const prodEnvConfig = {

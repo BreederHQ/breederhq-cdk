@@ -50,7 +50,6 @@ const devStack = new ElasticBeanstalkStack(app, 'bhq-dev', {
   environmentVariables: devEnvConfig,
   cloudFrontEnabled: true,
   cloudFrontCertificateArn: 'arn:aws:acm:us-east-1:335274136775:certificate/e74d5168-2c59-4a9c-8bec-1dc54b3cf035',
-  cloudFrontAliases: ['dev.breederhq.com'],
   additionalFrontends: ['portal', 'marketplace'],
 });
 devStack.addDependency(nonProdApp);
@@ -70,7 +69,6 @@ const alphaStack = new ElasticBeanstalkStack(app, 'bhq-alpha', {
   environmentVariables: alphaEnvConfig,
   cloudFrontEnabled: true,
   cloudFrontCertificateArn: 'arn:aws:acm:us-east-1:335274136775:certificate/e74d5168-2c59-4a9c-8bec-1dc54b3cf035',
-  cloudFrontAliases: ['alpha.breederhq.com'],
   additionalFrontends: ['portal', 'marketplace'],
 });
 alphaStack.addDependency(nonProdApp);
@@ -90,7 +88,6 @@ const bravoStack = new ElasticBeanstalkStack(app, 'bhq-bravo', {
   environmentVariables: bravoEnvConfig,
   cloudFrontEnabled: true,
   cloudFrontCertificateArn: 'arn:aws:acm:us-east-1:335274136775:certificate/e74d5168-2c59-4a9c-8bec-1dc54b3cf035',
-  cloudFrontAliases: ['bravo.breederhq.com'],
   additionalFrontends: ['portal', 'marketplace'],
 });
 bravoStack.addDependency(nonProdApp);
