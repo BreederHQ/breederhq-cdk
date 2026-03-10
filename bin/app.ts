@@ -2,6 +2,7 @@
 import * as cdk from 'aws-cdk-lib';
 import { devEnvConfig, alphaEnvConfig, bravoEnvConfig, prodEnvConfig, AWS_REGION } from './env';
 import { ElasticBeanstalkStack, ElasticBeanstalkStackProps } from '../lib/elastic-beanstalk-stack';
+import { SharedAppStack } from '../lib/shared-app-stack';
 
 const NODE_VERSION = '24';
 const APPLICATION_NAME = 'breederhq-api';
@@ -17,8 +18,25 @@ const ACCOUNTS = {
 
 const app = new cdk.App();
 
+// Shared EB application — one per AWS account
+const nonProdApp = new SharedAppStack(app, 'bhq-app', {
+  env: {
+    account: ACCOUNTS.nonProd,
+    region: AWS_REGION,
+  },
+  applicationName: APPLICATION_NAME,
+});
+
+const prodApp = new SharedAppStack(app, 'bhq-app-prod', {
+  env: {
+    account: ACCOUNTS.prod,
+    region: AWS_REGION,
+  },
+  applicationName: APPLICATION_NAME,
+});
+
 // Development environment - single instance
-new ElasticBeanstalkStack(app, 'bhq-dev', {
+const devStack = new ElasticBeanstalkStack(app, 'bhq-dev', {
   env: {
     account: ACCOUNTS.nonProd,
     region: AWS_REGION,
@@ -35,9 +53,10 @@ new ElasticBeanstalkStack(app, 'bhq-dev', {
   cloudFrontAliases: ['dev.breederhq.com'],
   additionalFrontends: ['portal', 'marketplace'],
 });
+devStack.addDependency(nonProdApp);
 
 // Staging environment - single instance
-new ElasticBeanstalkStack(app, 'bhq-alpha', {
+const alphaStack = new ElasticBeanstalkStack(app, 'bhq-alpha', {
   env: {
     account: ACCOUNTS.nonProd,
     region: AWS_REGION,
@@ -54,9 +73,10 @@ new ElasticBeanstalkStack(app, 'bhq-alpha', {
   cloudFrontAliases: ['alpha.breederhq.com'],
   additionalFrontends: ['portal', 'marketplace'],
 });
+alphaStack.addDependency(nonProdApp);
 
 // Sandbox environment - single instance
-new ElasticBeanstalkStack(app, 'bhq-bravo', {
+const bravoStack = new ElasticBeanstalkStack(app, 'bhq-bravo', {
   env: {
     account: ACCOUNTS.nonProd,
     region: AWS_REGION,
@@ -73,6 +93,7 @@ new ElasticBeanstalkStack(app, 'bhq-bravo', {
   cloudFrontAliases: ['bravo.breederhq.com'],
   additionalFrontends: ['portal', 'marketplace'],
 });
+bravoStack.addDependency(nonProdApp);
 
 // Production environment - blue/green deployment with CNAME swap
 const productionConfig: Omit<ElasticBeanstalkStackProps, 'env' | 'environmentName'> = {
@@ -85,7 +106,7 @@ const productionConfig: Omit<ElasticBeanstalkStackProps, 'env' | 'environmentNam
   environmentVariables: prodEnvConfig,
 };
 
-new ElasticBeanstalkStack(app, 'bhq-prod-blue', {
+const prodBlueStack = new ElasticBeanstalkStack(app, 'bhq-prod-blue', {
   env: {
     account: ACCOUNTS.prod,
     region: AWS_REGION,
@@ -93,8 +114,9 @@ new ElasticBeanstalkStack(app, 'bhq-prod-blue', {
   environmentName: 'production-blue',
   ...productionConfig,
 });
+prodBlueStack.addDependency(prodApp);
 
-new ElasticBeanstalkStack(app, 'bhq-prod-green', {
+const prodGreenStack = new ElasticBeanstalkStack(app, 'bhq-prod-green', {
   env: {
     account: ACCOUNTS.prod,
     region: AWS_REGION,
@@ -102,5 +124,6 @@ new ElasticBeanstalkStack(app, 'bhq-prod-green', {
   environmentName: 'production-green',
   ...productionConfig,
 });
+prodGreenStack.addDependency(prodApp);
 
 app.synth();

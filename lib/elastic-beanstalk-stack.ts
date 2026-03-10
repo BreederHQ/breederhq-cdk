@@ -60,12 +60,6 @@ export class ElasticBeanstalkStack extends cdk.Stack {
       versioned: true,
     });
 
-    // Create Elastic Beanstalk application
-    const app = new elasticbeanstalk.CfnApplication(this, 'Application', {
-      applicationName: `${applicationName}-${environmentName}`,
-      description: `${applicationName} - ${environmentName} environment`,
-    });
-
     // Create IAM role for EC2 instances
     const instanceRole = new iam.Role(this, 'InstanceRole', {
       assumedBy: new iam.ServicePrincipal('ec2.amazonaws.com'),
@@ -271,17 +265,15 @@ export class ElasticBeanstalkStack extends cdk.Stack {
     // Create Elastic Beanstalk environment
     const environment = new elasticbeanstalk.CfnEnvironment(this, 'Environment', {
       environmentName: `${applicationName}-${environmentName}`,
-      applicationName: app.ref,
+      applicationName: applicationName,
       platformArn: platformArn,
       optionSettings: optionSettings,
       description: `${environmentName} environment for ${applicationName}`,
     });
 
-    environment.addDependency(app);
-
     // Outputs
     new cdk.CfnOutput(this, 'ApplicationName', {
-      value: app.ref,
+      value: applicationName,
       description: 'Elastic Beanstalk Application Name',
     });
 
