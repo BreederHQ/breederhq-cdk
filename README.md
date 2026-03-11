@@ -53,7 +53,8 @@ Create the following buckets in the target region (`us-east-2`):
 - `breederhq-fe-marketplace-{env}` — marketplace frontend
 - `breederhq-assets-{env}` — user-uploaded media (animal photos, documents)
 
-Generally, the permissions on the bucket should look like this:
+Generally, the permissions on the bucket should look like this. This permission block allows access from all CloudFront distributions, but you can also limit it to the specific distribution Arn if you choose.
+
 ```{
     "Version": "2012-10-17",
     "Statement": [
