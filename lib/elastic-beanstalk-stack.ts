@@ -28,6 +28,9 @@ export interface ElasticBeanstalkStackProps extends cdk.StackProps {
   // Each entry creates a CloudFront distribution using bucket breederhq-fe-{name}-{env}
   // and alias {name}-{env}.breederhq.com (e.g. portal-dev.breederhq.com).
   additionalFrontends?: string[];
+  // Override the CloudFront alias for a specific additional frontend.
+  // Useful in prod where the alias is portal.breederhq.com rather than portal-prod.breederhq.com.
+  additionalFrontendAliasOverrides?: Record<string, string>;
 }
 
 export class ElasticBeanstalkStack extends cdk.Stack {
@@ -50,6 +53,7 @@ export class ElasticBeanstalkStack extends cdk.Stack {
       cloudFrontCertificateArn,
       cloudFrontAliases,
       additionalFrontends = [],
+      additionalFrontendAliasOverrides = {},
     } = props;
 
     // Create S3 bucket for application versions
@@ -412,7 +416,7 @@ export class ElasticBeanstalkStack extends cdk.Stack {
     // Additional frontend distributions (e.g. portal, marketplace)
     for (const frontendName of additionalFrontends) {
       const bucketName = `breederhq-fe-${frontendName}-${environmentName}`;
-      const alias = `${frontendName}-${environmentName}.breederhq.com`;
+      const alias = additionalFrontendAliasOverrides[frontendName] ?? `${frontendName}-${environmentName}.breederhq.com`;
 
       const bucket = s3.Bucket.fromBucketName(this, `${frontendName}Bucket`, bucketName);
       const origin = origins.S3BucketOrigin.withOriginAccessControl(bucket);

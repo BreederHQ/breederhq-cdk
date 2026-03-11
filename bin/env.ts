@@ -56,7 +56,19 @@ export const bravoEnvConfig = {
 };
 
 export const prodEnvConfig = {
+	PORT: '8080',
 	NODE_ENV: 'production',
 	LOG_LEVEL: 'warn',
 	AWS_REGION: AWS_REGION,
+	AWS_SECRET_NAME: 'breederhq/prod-prototype',
+	USE_SECRETS_MANAGER: 'true',
+	CDN_DOMAIN: 'breederhq.com',
+	// APP_URL and ALLOWED_ORIGINS are normally derived from CDN_DOMAIN, but prod
+	// has three separate frontend origins so we set ALLOWED_ORIGINS explicitly.
+	APP_URL: 'https://breederhq.com',
+	ALLOWED_ORIGINS: 'https://breederhq.com,https://www.breederhq.com,https://portal.breederhq.com,https://marketplace.breederhq.com',
+	RESEND_FROM_EMAIL: 'noreply@mail.breederhq.com',
+	RESEND_FROM_NAME: 'BreederHQ',
+	RESEND_INBOUND_DOMAIN: 'mail.breederhq.com',
+	MARKETPLACE_PUBLIC_ENABLED: 'true',
 };

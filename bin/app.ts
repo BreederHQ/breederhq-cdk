@@ -1,19 +1,18 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
 import { devEnvConfig, alphaEnvConfig, bravoEnvConfig, prodEnvConfig, AWS_REGION } from './env';
-import { ElasticBeanstalkStack, ElasticBeanstalkStackProps } from '../lib/elastic-beanstalk-stack';
+import { ElasticBeanstalkStack } from '../lib/elastic-beanstalk-stack';
 import { SharedAppStack } from '../lib/shared-app-stack';
 
 const NODE_VERSION = '24';
 const APPLICATION_NAME = 'breederhq-api';
 const SECRETS_MANAGER_PREFIX = 'breederhq';
-const SMALL_INSTANCE_TYPE = 't4g.small';
 const MEDIUM_INSTANCE_TYPE = 't4g.medium';
 
 // AWS Account IDs - update these with your actual account IDs
 const ACCOUNTS = {
   nonProd: '335274136775', // dev, alpha, bravo
-  prod:    '427814061976', // production blue/green
+  prod:    '427814061976', // production
 };
 
 const app = new cdk.App();
@@ -92,35 +91,30 @@ const bravoStack = new ElasticBeanstalkStack(app, 'bhq-bravo', {
 });
 bravoStack.addDependency(nonProdApp);
 
-// Production environment - blue/green deployment with CNAME swap
-const productionConfig: Omit<ElasticBeanstalkStackProps, 'env' | 'environmentName'> = {
+// Production environment - single rolling-deploy environment
+const prodStack = new ElasticBeanstalkStack(app, 'bhq-prod', {
+  env: {
+    account: ACCOUNTS.prod,
+    region: AWS_REGION,
+  },
+  environmentName: 'prod',
   applicationName: APPLICATION_NAME,
+  secretsManagerPrefix: SECRETS_MANAGER_PREFIX,
   highAvailability: true,
   instanceType: MEDIUM_INSTANCE_TYPE,
-  minInstances: 1,
+  minInstances: 2,
   maxInstances: 10,
   nodeVersion: NODE_VERSION,
   environmentVariables: prodEnvConfig,
-};
-
-const prodBlueStack = new ElasticBeanstalkStack(app, 'bhq-prod-blue', {
-  env: {
-    account: ACCOUNTS.prod,
-    region: AWS_REGION,
+  cloudFrontEnabled: true,
+  cloudFrontCertificateArn: 'arn:aws:acm:us-east-1:427814061976:certificate/REPLACE_ME',
+  cloudFrontAliases: ['breederhq.com', 'www.breederhq.com'],
+  additionalFrontends: ['portal', 'marketplace'],
+  additionalFrontendAliasOverrides: {
+    portal: 'portal.breederhq.com',
+    marketplace: 'marketplace.breederhq.com',
   },
-  environmentName: 'production-blue',
-  ...productionConfig,
 });
-prodBlueStack.addDependency(prodApp);
-
-const prodGreenStack = new ElasticBeanstalkStack(app, 'bhq-prod-green', {
-  env: {
-    account: ACCOUNTS.prod,
-    region: AWS_REGION,
-  },
-  environmentName: 'production-green',
-  ...productionConfig,
-});
-prodGreenStack.addDependency(prodApp);
+prodStack.addDependency(prodApp);
 
 app.synth();
