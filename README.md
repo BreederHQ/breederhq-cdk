@@ -71,7 +71,8 @@ Generally, the permissions on the bucket should look like this:
             }
         }
     ]
-}```
+}
+```
 
 
 ### 2. Secrets Manager
