@@ -53,6 +53,27 @@ Create the following buckets in the target region (`us-east-2`):
 - `breederhq-fe-marketplace-{env}` — marketplace frontend
 - `breederhq-assets-{env}` — user-uploaded media (animal photos, documents)
 
+Generally, the permissions on the bucket should look like this:
+```{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "cloudfront.amazonaws.com"
+            },
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::breederhq-fe-dev/*",
+            "Condition": {
+                "ArnLike": {
+                    "AWS:SourceArn": "arn:aws:cloudfront::335274136775:distribution/*"
+                }
+            }
+        }
+    ]
+}```
+
+
 ### 2. Secrets Manager
 
 Create a secret named `breederhq/{env}` (or as configured in `AWS_SECRET_NAME` in `env.ts`) containing sensitive values like database credentials, API keys, etc.
