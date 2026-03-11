@@ -115,14 +115,16 @@ The `additionalFrontends` prop accepts an array of names (e.g. `['portal', 'mark
 
 ### First-time setup (shared application)
 
+n.b. In all of these setup and deploy commands, there is a "non-prod" account and a "prod" account. Local profile names are at the discretion of the developer, and mapped through the app "direnv" to environment variables on the command line. The environment variables are "$AWS_PROFILE_NONPROD" and "$AWS_PROFILE_PROD".
+
 The shared EB application must be deployed before any environments:
 
 ```bash
 # Non-prod account
-npm run deploy:app
+npm run deploy:app --profile <LOCAL PROFILE NAME>
 
 # Prod account (requires prod profile)
-cdk deploy bhq-app-prod --profile bhq-prod
+cdk deploy bhq-app-prod --profile <LOCAL PROFILE NAME>
 ```
 
 This only needs to be done once per account.
@@ -133,7 +135,7 @@ Follow these steps in order (using `bravo` as an example):
 
 #### 1. Create prerequisite resources manually
 
-- S3 buckets: `breederhq-fe-bravo`, `breederhq-fe-portal-bravo`, `breederhq-fe-marketplace-bravo`, `breederhq-assets-bravo`
+- S3 buckets: `breederhq-fe-bravo`, `breederhq-fe-portal-bravo`, `breederhq-fe-marketplace-bravo`, `breederhq-assets-bravo`, with appropriate permissions as described above.
 - Secrets Manager secret: `breederhq/bravo`
 - ACM certificate (the existing `*.breederhq.com` cert covers all environments)
 
