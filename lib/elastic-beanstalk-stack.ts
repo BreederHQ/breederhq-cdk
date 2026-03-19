@@ -380,9 +380,29 @@ export class ElasticBeanstalkStack extends cdk.Stack {
         } : {}),
       });
 
-      // Allow CloudFront (via OAC) to read from the assets bucket.
+      // Allow CloudFront (via OAC) to read from the frontend bucket.
       // fromBucketName() returns an imported bucket — CDK cannot auto-add
       // resource policies to imported buckets, so we do it explicitly here.
+      new s3.CfnBucketPolicy(this, 'FrontendBucketPolicy', {
+        bucket: frontendBucketName,
+        policyDocument: {
+          Version: '2012-10-17',
+          Statement: [{
+            Sid: 'AllowCloudFrontOAC',
+            Effect: 'Allow',
+            Principal: { Service: 'cloudfront.amazonaws.com' },
+            Action: 's3:GetObject',
+            Resource: `arn:aws:s3:::${frontendBucketName}/*`,
+            Condition: {
+              StringEquals: {
+                'AWS:SourceArn': `arn:aws:cloudfront::${this.account}:distribution/${distribution.distributionId}`,
+              },
+            },
+          }],
+        },
+      });
+
+      // Allow CloudFront (via OAC) to read from the assets bucket.
       new s3.CfnBucketPolicy(this, 'AssetsBucketPolicy', {
         bucket: assetsBucketName,
         policyDocument: {

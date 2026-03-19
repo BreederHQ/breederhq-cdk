@@ -13,8 +13,8 @@
     "deploy:dev": "cdk deploy bhq-dev --profile $AWS_PROFILE_NONPROD",
     "deploy:alpha": "cdk deploy bhq-alpha --profile $AWS_PROFILE_NONPROD",
     "deploy:bravo": "cdk deploy bhq-bravo --profile $AWS_PROFILE_NONPROD",
-    "deploy:prod:blue": "cdk deploy bhq-prod-blue --profile $AWS_PROFILE_PROD",
-    "deploy:prod:green": "cdk deploy bhq-prod-green --profile $AWS_PROFILE_PROD",
+    "deploy:app:prod": "cdk deploy bhq-app-prod --profile $AWS_PROFILE_PROD",
+    "deploy:prod": "cdk deploy bhq-prod --profile $AWS_PROFILE_PROD",
     "deploy:all": "cdk deploy --all",
     "diff": "cdk diff",
     "synth": "cdk synth"

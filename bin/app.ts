@@ -107,7 +107,7 @@ const prodStack = new ElasticBeanstalkStack(app, 'bhq-prod', {
   nodeVersion: NODE_VERSION,
   environmentVariables: prodEnvConfig,
   cloudFrontEnabled: true,
-  cloudFrontCertificateArn: 'arn:aws:acm:us-east-1:427814061976:certificate/REPLACE_ME',
+  cloudFrontCertificateArn: 'arn:aws:acm:us-east-1:427814061976:certificate/814592eb-618a-4027-b725-a83ec902da1a',
   cloudFrontAliases: ['breederhq.com', 'www.breederhq.com'],
   additionalFrontends: ['portal', 'marketplace'],
   additionalFrontendAliasOverrides: {
